@@ -4,6 +4,8 @@ import os
 import sys
 from collections import defaultdict
 import json
+from pprint import pprint
+from http import HTTPStatus
 
 import requests
 
@@ -11,11 +13,15 @@ import requests
 API_KEY = os.environ.get('WEATHER_API_KEY')
 
 
+class APIException(Exception):
+    pass
+
+
 def get_weather(*cities):
     if not cities:
         return 'Please provide at least one city name.'
 
-    cities = set([x.lower() for x in cities])
+    cities = set([x.capitalize() for x in cities])
     result = defaultdict(list)
     location_keys = _get_location_keys(*cities)
 
@@ -31,8 +37,10 @@ def _get_location_keys(*cities):
         for city in cities:
             api_response = _make_api_request(session, url_template.format(city=city))
 
-            if api_response.status_code != 200:
-                continue  # TODO handle error
+            if api_response.status_code != HTTPStatus.OK:
+                raise APIException(f'''Failed to fetch location key for {city}
+                    Response {api_response.status_code}
+                    {api_response.text}''')
 
             json_response = json.loads(api_response.text)
             result[city] = [x['Key'] for x in json_response]
@@ -50,8 +58,10 @@ def _get_forecasts(**location_keys):
             for key in keys:
                 api_response = _make_api_request(session, url_template.format(key=key))
 
-                if api_response.status_code != 200:
-                    continue  # TODO handle error
+                if api_response.status_code != HTTPStatus.OK:
+                    raise APIException(f'''Failed to fetch location key for {city}
+                        Response {api_response.status_code}
+                        {api_response.text}''')
 
                 json_response = json.loads(api_response.text)
                 result[city].append(json_response)
@@ -65,4 +75,8 @@ def _make_api_request(session, url, **query_params):
 
 if __name__ == '__main__':
     cities = sys.argv[1:]
-    print(get_weather(*cities))
+
+    try:
+        pprint(get_weather(*cities))
+    except APIException as e:
+        sys.stderr.write(str(e))
