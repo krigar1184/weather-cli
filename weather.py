@@ -26,20 +26,28 @@ def get_weather(*cities):
         raise InvalidInputException('Please provide at least one city name.')
 
     cities = set([x.capitalize() for x in cities])
+    weather = _get_current_weather(*cities)
+    result = {'results': []}
+
+    for city, data in weather.items():
+        for item in data:
+            result['results'] = {
+                'country': item['location']['country'],
+                'city': city,
+                'region': item['location']['region'],
+                'temperature': item['current']['temp_c'],
+            }
+
+    return result
+
+
+def _get_current_weather(*cities):
+    url_template = f'http://api.apixu.com/v1/current.json?key={API_KEY}&q={{}}'
     result = defaultdict(list)
-    location_keys = _get_location_keys(*cities)
-
-    return _get_forecasts(**location_keys)
-
-
-def _get_location_keys(*cities):
-    result = {}
-    url_template = f'http://dataservice.accuweather.com/locations/v1/cities/search'\
-                   f'?apikey={API_KEY}&q={{city}}'
 
     with requests.Session() as session:
         for city in cities:
-            api_response = _make_api_request(session, url_template.format(city=city))
+            api_response = _make_api_request(session, url_template.format(city))
 
             if api_response.status_code != HTTPStatus.OK:
                 raise APIException(f'''Failed to fetch location key for {city}
@@ -47,30 +55,9 @@ def _get_location_keys(*cities):
                     {api_response.text}''')
 
             json_response = json.loads(api_response.text)
-            result[city] = [x['Key'] for x in json_response]
+            result[city].append(json_response)
 
-    return result
-
-
-def _get_forecasts(**location_keys):
-    url_template = 'http://dataservice.accuweather.com/forecasts/v1/daily/1day/{key}'\
-                   f'?apikey={API_KEY}'
-    result = defaultdict(list)
-
-    with requests.Session() as session:
-        for city, keys in location_keys.items():
-            for key in keys:
-                api_response = _make_api_request(session, url_template.format(key=key))
-
-                if api_response.status_code != HTTPStatus.OK:
-                    raise APIException(f'''Failed to fetch location key for {city}
-                        Response {api_response.status_code}
-                        {api_response.text}''')
-
-                json_response = json.loads(api_response.text)
-                result[city].append(json_response)
-
-        return dict(result)
+        return result
 
 
 def _make_api_request(session, url, **query_params):
@@ -82,5 +69,6 @@ if __name__ == '__main__':
 
     try:
         pprint(get_weather(*cities))
-    except APIException as e:
+    except Exception as e:
         sys.stderr.write(str(e))
+        sys.exit(1)

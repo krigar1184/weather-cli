@@ -13,19 +13,23 @@ def test_no_cities():
         get_weather()
 
 
-@pytest.mark.parametrize(('cities', 'call_count'), [
-    (('Bergen', 'Moscow', 'New York'), 6),
-    (('Bergen', 'Bergen'), 2),
-    (('Bergen', 'bergen'), 2),
-    (('Bergen', 'bergen', 'BERGEN'), 2),
+@pytest.mark.parametrize(('cities', 'expected'), [
+    (('Bergen',), ['Bergen']),
+    (('Bergen', 'bergen', 'BERGEN'), ['Bergen']),
 ])
-def test_api_calls_count(cities, call_count):
-    with requests_mock.mock() as m:
-        m.get(requests_mock.ANY, text=json.dumps('[]'))
-        m.get(
-            re.compile(r'http://dataservice.accuweather.com/locations'),
-            text=json.dumps([{'Key': random.randint(1000000, 2000000)}]),
-        )
-        get_weather(*cities)
+def test_weather(cities, expected):
+    def text_callback(request, context):
+        return json.dumps({
+            'current': {'temp_c': random.randint(-30, 30)},
+            'location': {
+                'country': '',
+                'name': '',
+                'region': None,
+            },
+        })
 
-        assert m.call_count == call_count
+    with requests_mock.mock() as m:
+        m.get(requests_mock.ANY, text=text_callback)
+        results = get_weather(*cities)['results']
+
+    assert sorted(results.keys()) == sorted(['country', 'city', 'region', 'temperature'])
