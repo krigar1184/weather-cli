@@ -1,11 +1,10 @@
-import re
 import json
 import random
 
 import pytest
 import requests_mock
 
-from weather import get_weather, InvalidInputException
+from weather import get_weather, InvalidInputException, APIException
 
 
 def test_no_cities():
@@ -33,3 +32,9 @@ def test_weather(cities, expected):
         results = get_weather(*cities)['results']
 
     assert sorted(results.keys()) == sorted(['country', 'city', 'region', 'temperature'])
+
+
+def test_nonexistent_city():
+    with requests_mock.mock() as m, pytest.raises(APIException):
+        m.get(requests_mock.ANY, status_code=400)
+        get_weather('idontexist')
