@@ -5,15 +5,15 @@ import random
 import pytest
 import requests_mock
 
-from weather import get_weather
+from weather import get_weather, InvalidInputException
 
 
 def test_no_cities():
-    assert get_weather() == 'Please provide at least one city name.'
+    with pytest.raises(InvalidInputException):
+        get_weather()
 
 
 @pytest.mark.parametrize(('cities', 'call_count'), [
-    ((), 0),
     (('Bergen', 'Moscow', 'New York'), 6),
     (('Bergen', 'Bergen'), 2),
     (('Bergen', 'bergen'), 2),

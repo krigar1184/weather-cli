@@ -17,9 +17,13 @@ class APIException(Exception):
     pass
 
 
+class InvalidInputException(Exception):
+    pass
+
+
 def get_weather(*cities):
     if not cities:
-        return 'Please provide at least one city name.'
+        raise InvalidInputException('Please provide at least one city name.')
 
     cities = set([x.capitalize() for x in cities])
     result = defaultdict(list)
@@ -66,7 +70,7 @@ def _get_forecasts(**location_keys):
                 json_response = json.loads(api_response.text)
                 result[city].append(json_response)
 
-        return result
+        return dict(result)
 
 
 def _make_api_request(session, url, **query_params):
