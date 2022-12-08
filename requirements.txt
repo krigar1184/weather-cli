@@ -2,7 +2,7 @@ appnope==0.1.0
 atomicwrites==1.3.0
 attrs==19.1.0
 backcall==0.1.0
-certifi==2018.11.29
+certifi==2022.12.7
 chardet==3.0.4
 decorator==4.3.2
 fancycompleter==0.8
